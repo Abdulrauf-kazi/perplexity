@@ -1,3 +1,5 @@
+import { Plus } from "lucide-react";
+
 interface FollowUpChipProps {
   question: string;
   onAsk: (question: string) => void;
@@ -8,23 +10,17 @@ export function FollowUpChip({ question, onAsk }: FollowUpChipProps) {
     <button
       type="button"
       onClick={() => onAsk(question)}
-      className="text-left px-3.5 py-2 rounded-xl
-                 bg-[#232525] hover:bg-[#2E3030] border border-[#2E3030] hover:border-[#3A3D3D]
-                 text-sm text-[#B0B0B0] hover:text-[#ECECEC]
-                 transition-all duration-200 cursor-pointer
-                 flex items-center gap-2 group"
+      className="text-left px-4 py-3 rounded-2xl
+                 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.03] hover:border-primary/20
+                 text-sm text-muted-foreground hover:text-foreground
+                 transition-all duration-300 cursor-pointer
+                 flex items-center justify-between group"
       id={`followup-${question.slice(0, 20).replace(/\s+/g, "-")}`}
     >
-      <svg
-        className="w-3.5 h-3.5 text-[#20B8CD] opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-      </svg>
-      <span>{question}</span>
+      <span className="truncate">{question}</span>
+      <Plus
+        className="w-4 h-4 text-primary/40 group-hover:text-primary transition-all duration-300 group-hover:rotate-90 group-hover:scale-110 flex-shrink-0 ml-4"
+      />
     </button>
   );
 }
