@@ -44,7 +44,7 @@ app.get('/conversations', middleware, async (req, res) => {
 
 // get Past Conversation
 app.get('/conversation/:conversationId', middleware, async (req, res) => {
-    const conversationId = req.params.conversationId;
+    const conversationId = req.params.conversationId as string;
 
     const conversation = await prisma.conversation.findFirst({
         where: {
@@ -218,7 +218,7 @@ app.post('/perplexity_ask/followup', middleware, async (req, res) => {
 
 // Delete a conversation (reset)
 app.delete('/conversation/:conversationId', middleware, async (req, res) => {
-    const conversationId = req.params.conversationId;
+    const conversationId = req.params.conversationId as string;
 
     const conversation = await prisma.conversation.findFirst({
         where: { id: conversationId, userId: req.userId }
