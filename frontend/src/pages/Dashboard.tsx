@@ -253,25 +253,25 @@ export default function Dashboard() {
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
         {/* Abstract Background for Main Content */}
         {!isHome && (
-           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.02] blur-[100px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.02] blur-[100px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
         )}
 
         {/* Top bar */}
         <header className="flex items-center justify-between px-6 py-4 z-20">
           <div className="flex items-center gap-4">
             <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 rounded-xl hover:bg-white/5 text-muted-foreground transition-all active:scale-95"
-                id="sidebar-toggle"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 rounded-xl hover:bg-white/5 text-muted-foreground transition-all active:scale-95"
+              id="sidebar-toggle"
             >
-                <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5" />
             </button>
 
             {!isHome && (
-                <div className="flex items-center gap-2">
-                     <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(226,184,89,0.5)]" />
-                     <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Active Thread</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(226,184,89,0.5)]" />
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Active Thread</span>
+              </div>
             )}
           </div>
 
@@ -296,7 +296,7 @@ export default function Dashboard() {
               {/* Logo / Branding */}
               <div className="flex flex-col items-center gap-4 text-center animate-fade-in-up">
                 <h1 className="text-6xl md:text-7xl font-serif text-foreground tracking-tight leading-tight">
-                  Where <span className="text-primary italic">knowledge</span> begins.
+                  Where <span className="text-primary italic">knowledge</span> begins....
                 </h1>
                 <p className="text-muted-foreground text-lg max-w-[500px] leading-relaxed font-sans">
                   The world's most advanced AI research engine, refined for clarity and depth.
@@ -344,12 +344,12 @@ export default function Dashboard() {
             <div className="px-6 py-6 mt-auto">
               <div className="max-w-[840px] mx-auto">
                 <div className="glass p-1 rounded-[28px] shadow-2xl">
-                    <SearchBar
+                  <SearchBar
                     onSubmit={handleFollowUp}
                     placeholder="Ask a follow-up..."
                     disabled={isStreaming}
                     variant="inline"
-                    />
+                  />
                 </div>
               </div>
             </div>
