@@ -34,7 +34,7 @@ export default function Auth() {
             </svg>
           </div>
           <div className="text-center">
-            <h1 className="text-4xl font-serif text-foreground mb-3 tracking-tight">Perplexity AI</h1>
+            <h1 className="text-4xl font-serif text-foreground mb-3 tracking-tight">Perplexity AI testing</h1>
             <p className="text-muted-foreground font-sans tracking-wide text-sm uppercase">Where knowledge begins</p>
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function Auth() {
 
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
             <p className="text-xs text-muted-foreground/60 leading-relaxed">
-              By continuing, you agree to our <br/>
+              By continuing, you agree to our <br />
               <span className="text-primary/80 hover:text-primary cursor-pointer transition-colors">Terms of Service</span> and <span className="text-primary/80 hover:text-primary cursor-pointer transition-colors">Privacy Policy</span>
             </p>
           </div>
