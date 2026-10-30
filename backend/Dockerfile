@@ -1,4 +1,3 @@
-# Keep this the same as BUN_VERSION in .github/workflows/cd.yml.
 ARG BUN_VERSION=1.3.5
 
 # Stage 1: generate the Prisma client. This needs the dev dependencies, so they
