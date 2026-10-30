@@ -1,0 +1,155 @@
+name: CD
+
+# Backend:  Docker image -> GitHub Container Registry (GHCR) -> Render
+# Frontend: static files -> Cloudflare Pages (no Docker needed)
+#
+# Order: build image -> run migrations -> deploy backend -> deploy frontend.
+# If any job fails, the jobs after it don't run.
+
+on:
+  # Start when the CI workflow finishes on main, so untested code never deploys.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+# Queue deploys instead of running two at once or cancelling one halfway.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+# Default to read-only. Only the job that pushes the image gets more access.
+permissions:
+  contents: read
+
+env:
+  # Keep this the same as BUN_VERSION in backend/Dockerfile.
+  BUN_VERSION: 1.3.5
+  # The exact commit CI tested. In workflow_run, github.sha would be the latest
+  # commit on main, which may not be the one CI just checked.
+  COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+  # GHCR image names must be lowercase. Tagging with the SHA makes rollback easy.
+  IMAGE: ghcr.io/abdulrauf-kazi/perplexity-backend:${{ github.event.workflow_run.head_sha }}
+
+jobs:
+  # 1. Package the backend. This changes nothing in production, so a broken
+  #    Dockerfile stops the deploy before the database is touched.
+  build-backend:
+    # CI also runs on pull requests, so only continue for a successful push to
+    # main in this repo. The other jobs are skipped if this one is skipped.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # needed to push the image to GHCR
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.COMMIT_SHA }}
+      # Buildx adds the layer cache used below.
+      - uses: docker/setup-buildx-action@v3
+      # GITHUB_TOKEN is created automatically, so no extra secret is needed.
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: ${{ env.IMAGE }}
+          build-args: |
+            BUN_VERSION=${{ env.BUN_VERSION }}
+            GIT_SHA=${{ env.COMMIT_SHA }}
+          # Reuse unchanged layers from earlier runs to speed up builds.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 2. Update the database before the new code that may depend on it goes live.
+  #    Old code keeps running during this step, so keep schema changes backward
+  #    compatible. Rolling back the image doesn't undo a migration.
+  migrate:
+    needs: build-backend
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.COMMIT_SHA }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      # "migrate deploy" only applies existing migration files. Never use
+      # "migrate dev" here, because it can reset the database.
+      - run: bunx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  # 3. Tell Render to run the new image, then confirm that it's really live.
+  deploy-backend:
+    needs: migrate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      # Render's deploy hook accepts the image to run, URL-encoded, in imgURL.
+      - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          encoded_image=$(jq -rn --arg image "$IMAGE" '$image | @uri')
+          curl -fsS -o /dev/null -X POST "$RENDER_DEPLOY_HOOK_URL&imgURL=$encoded_image"
+      # Render returns before the deploy finishes and the old version keeps
+      # answering meanwhile, so wait until /health reports this commit's SHA.
+      - name: Wait for the new version
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$BACKEND_URL/health" | grep -q "$COMMIT_SHA"; then
+              echo "Backend is running $COMMIT_SHA"
+              exit 0
+            fi
+            echo "Attempt $attempt of 30: not live yet"
+            sleep 10
+          done
+          echo "Backend did not report $COMMIT_SHA within 5 minutes"
+          exit 1
+
+  # 4. Deploy the frontend last, so it never calls a backend that isn't live yet.
+  deploy-frontend:
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.COMMIT_SHA }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      # Values are copied into the browser code at build time, so only variables
+      # starting with BUN_PUBLIC_ are included. Never give one a secret value.
+      - run: bun run build --env='BUN_PUBLIC_*'
+        env:
+          BUN_PUBLIC_BACKEND_URL: ${{ vars.BACKEND_URL }}
+      # --branch=main marks this as the production deployment.
+      - run: >-
+          bunx wrangler@4 pages deploy dist
+          --project-name="${{ vars.CLOUDFLARE_PAGES_PROJECT }}"
+          --branch=main
+          --commit-hash="$COMMIT_SHA"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

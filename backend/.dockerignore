@@ -1,0 +1,13 @@
+# Secrets must never be copied into the image.
+.env
+.env.*
+
+# Reinstalled and regenerated inside the image.
+node_modules
+prisma/generated
+
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md

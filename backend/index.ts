@@ -27,6 +27,11 @@ function slugify(text: string) {
 
 
 
+// Used by the CD workflow to confirm which commit is live
+app.get('/health', (req, res) => {
+    res.json({ status: "ok", commit: process.env.GIT_SHA ?? "unknown" });
+})
+
 // get Past Conversations
 app.get('/conversations', middleware, async (req, res) => {
     const conversatoins = await prisma.conversation.findMany({
@@ -241,5 +246,6 @@ app.delete('/conversation/:conversationId', middleware, async (req, res) => {
     res.json({ message: "Conversation deleted" })
 })
 
-app.listen(3001);
+// Hosts like Render choose the port through PORT
+app.listen(process.env.PORT ?? 3001);
 
